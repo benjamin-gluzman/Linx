@@ -2,8 +2,6 @@
 
 static DBusConnection *system_connection, *session_connection;
 
-static void parse_reply(DBusMessageIter *iter);
-
 static bool error_thrown(DBusError *error);
 
 
@@ -37,7 +35,15 @@ void linx_disconnect_from_dbus() {
     dbus_connection_unref(session_connection);
 }
 
-void *linx_call_dbus_method(char *bus_name, char *object_path, char *iface, const char* method) {
+void *linx_call_dbus_method(
+    const char *bus_name,
+    const char *object_path,
+    const char *iface,
+    const char* method,
+    void *(*parse)(DBusMessageIter *),
+    int first_arg_type,
+    ...
+) {
     DBusMessage *msg, *reply;
     DBusError error;
     dbus_error_init(&error);
@@ -47,6 +53,13 @@ void *linx_call_dbus_method(char *bus_name, char *object_path, char *iface, cons
     if(msg == NULL) {
         fprintf(stderr, "Unable to call %s %s %s %s", bus_name, object_path, iface, method);
         return NULL;
+    }
+
+    if(first_arg_type != DBUS_TYPE_INVALID) {
+        va_list args;
+        va_start(args, first_arg_type);
+        dbus_message_append_args_valist(msg, first_arg_type, args);
+        va_end(args);
     }
 
     if(strcmp(bus_name, LINX_BLUEZ_SYSTEM_NAME) == 0)
@@ -64,34 +77,11 @@ void *linx_call_dbus_method(char *bus_name, char *object_path, char *iface, cons
         return NULL;
     }
 
-    parse_reply(&iter);
+    void *res = parse(&iter);
 
     dbus_message_unref(msg);
     dbus_message_unref(reply);
-    return NULL;
-}
-
-static void parse_reply(DBusMessageIter *iter) {
-    do {
-        int type = dbus_message_iter_get_arg_type(iter);
-        
-        if(type == DBUS_TYPE_ARRAY || type == DBUS_TYPE_DICT_ENTRY || type == DBUS_TYPE_VARIANT) {
-            DBusMessageIter sub_iter;
-            dbus_message_iter_recurse(iter, &sub_iter);
-            if(dbus_message_iter_get_arg_type(&sub_iter) == DBUS_TYPE_INVALID) {
-                continue;
-            }
-
-            parse_reply(&sub_iter);
-        }
-        else if(type == DBUS_TYPE_STRING || type == DBUS_TYPE_OBJECT_PATH) {
-            const char *val = NULL;
-            dbus_message_iter_get_basic(iter, &val);
-
-            printf("%s\n", val);
-        }
-
-    } while(dbus_message_iter_next(iter));
+    return res;
 }
 
 static bool error_thrown(DBusError *error) {
@@ -100,6 +90,5 @@ static bool error_thrown(DBusError *error) {
         dbus_error_free(error);
         return true;
     }
-
     return false;
 }
