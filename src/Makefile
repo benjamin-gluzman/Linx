@@ -11,7 +11,6 @@ LDLIBS = $(shell pkg-config --libs dbus-1)
 SRC = \
 	main.c \
 	dbus/linx_dbus.c \
-	dbus/types/linx_types.c \
 	bluetooth_profiles/linx_map.c \
 	bluetooth_profiles/linx_pbap.c \
 	bluetooth_manager/linx_object_manager.c \
