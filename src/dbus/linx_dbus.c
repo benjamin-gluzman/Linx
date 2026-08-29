@@ -55,7 +55,7 @@ void *linx_call_dbus_method(
         return NULL;
     }
 
-    if(first_arg_type != DBUS_TYPE_INVALID) {
+    if(first_arg_type != LINX_NO_ARGS) {
         va_list args;
         va_start(args, first_arg_type);
         dbus_message_append_args_valist(msg, first_arg_type, args);
@@ -77,7 +77,9 @@ void *linx_call_dbus_method(
         return NULL;
     }
 
-    void *res = parse(&iter);
+    void *res = NULL;
+    if(parse != LINX_NO_PARSE_FUNC)
+        res = parse(&iter);
 
     dbus_message_unref(msg);
     dbus_message_unref(reply);

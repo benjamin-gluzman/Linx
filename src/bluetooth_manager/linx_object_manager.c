@@ -8,7 +8,7 @@ void *linx_get_managed_objects(void *(*parse)(DBusMessageIter *)) {
         "org.freedesktop.DBus.ObjectManager",
         "GetManagedObjects",
         parse,
-        DBUS_TYPE_INVALID
+        LINX_NO_ARGS
     );
 }
 

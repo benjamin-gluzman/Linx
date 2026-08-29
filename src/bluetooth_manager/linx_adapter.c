@@ -5,21 +5,39 @@
 
 static void *adapter_parse(DBusMessageIter *iter);
 
+static LinxAdapter *adapter;
+
 void linx_get_adapter() {
-    LinxAdapter *adapter = linx_get_managed_objects(adapter_parse);
+    adapter = linx_get_managed_objects(adapter_parse);
 
     printf("Object Path: %s\nIFace: %s\n", adapter->object_path, adapter->iface);
 }
 
 void linx_start_discovery() {
-    
+    // StartDiscovery () -> ()
+    linx_call_dbus_method(
+        LINX_BLUEZ_SYSTEM_NAME,
+        adapter->object_path,
+        adapter->iface,
+        "StartDiscovery",
+        LINX_NO_PARSE_FUNC,
+        LINX_NO_ARGS
+    );
 }
 
 void linx_stop_discovery() {
-
+    // StopDiscovery () -> ()
+    linx_call_dbus_method(
+        LINX_BLUEZ_SYSTEM_NAME,
+        adapter->object_path,
+        adapter->iface,
+        "StopDiscovery",
+        LINX_NO_PARSE_FUNC,
+        LINX_NO_ARGS
+    );
 }
 
-// GetManagedObjects () ↦ (Dict of {Object Path, Dict of {String, Dict of {String, Variant}}} objects)
+// GetManagedObjects () -> (Dict of {Object Path, Dict of {String, Dict of {String, Variant}}} objects)
 static void *adapter_parse(DBusMessageIter *iter) {
     LinxAdapter *adapter = malloc(sizeof(LinxAdapter));
 
@@ -58,23 +76,3 @@ static void *adapter_parse(DBusMessageIter *iter) {
     free(adapter);
     return NULL;
 }
-
-
-// LinxAdapter *adapter = malloc(sizeof(LinxAdapter));
-
-// DBUS_FOREACH(object_entry, linx_dbus_iter_recurse(iter)) {
-//     char *object_path = linx_dbus_iter_get_basic(linx_dbus_iter_get_dict_key(object_entry));
-
-//     if(!strstr(object_path, ADAPTER_OBJECT_PATH_PREFIX)) continue;
-
-//     DBUS_FOREACH(iface_iter, linx_dbus_iter_recurse(linx_dbus_iter_get_dict_value(object_entry))) {
-//         char *iface = linx_dbus_iter_get_basic(linx_dbus_iter_get_dict_key(iface_iter));
-
-//         if(!strstr(iface, ADAPTER_IFACE_PREFIX)) continue;
-
-//         adapter->object_path = object_path;
-//         adapter->iface = iface;
-        
-//         return adapter;
-//     }
-// }
