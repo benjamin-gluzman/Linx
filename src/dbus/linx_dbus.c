@@ -1,95 +1,73 @@
 #include "linx_dbus.h"
 
-static DBusConnection *system_connection, *session_connection;
+#define DEFAULT_TIMEOUT -1
 
-static bool error_thrown(DBusError *error);
+static GDBusConnection *system_connection, *session_connection;
+
+static bool error_is_set(GError *error);
 
 
 bool linx_connect_to_dbus() {
-    DBusError system_error, session_error;
-    dbus_error_init(&system_error);
-    dbus_error_init(&session_error);
-
-    system_connection = dbus_bus_get(DBUS_BUS_SYSTEM, &system_error);
-    session_connection = dbus_bus_get(DBUS_BUS_SESSION, &session_error);
-
-    if(error_thrown(&system_error) || error_thrown(&session_error)) {
-        return false;
-    }
+    GError *system_error = NULL, *session_error = NULL;
     
-    if(system_connection == NULL || session_connection == NULL) {
-        fprintf(stderr, "Failed to connect to system and/or session D-Bus\n");
+    system_connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &system_error);
+    session_connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &session_error);
+
+    if(error_is_set(system_error) || error_is_set(session_error)) {
         return false;
     }
 
     printf("Connected to system & session D-Bus!\n");
 
-    dbus_error_free(&system_error);
-    dbus_error_free(&session_error);
-
     return true;
 }
 
 void linx_disconnect_from_dbus() {
-    dbus_connection_unref(system_connection);
-    dbus_connection_unref(session_connection);
+    g_object_unref(system_connection);
+    g_object_unref(session_connection);
 }
 
 void *linx_call_dbus_method(
-    const char *bus_name,
-    const char *object_path,
-    const char *iface,
-    const char* method,
-    void *(*parse)(DBusMessageIter *),
-    int first_arg_type,
-    ...
+    const gchar *bus_name,
+    const gchar *object_path,
+    const gchar *interface_name,
+    const gchar* method_name,
+    GVariant *parameters,
+    const GVariantType *reply_type,
+    void *(*parse)(GVariant *)
 ) {
-    DBusMessage *msg, *reply;
-    DBusError error;
-    dbus_error_init(&error);
+    GVariant *reply = NULL;
+    GError *error = NULL;
 
-    msg = dbus_message_new_method_call(bus_name, object_path, iface, method);
+    reply = g_dbus_connection_call_sync(
+        strcmp(bus_name, LINX_BLUEZ_SYSTEM_NAME) == 0 ? system_connection : session_connection,
+        bus_name,
+        object_path,
+        interface_name,
+        method_name,
+        parameters,
+        reply_type,
+        G_DBUS_CALL_FLAGS_NONE,
+        DEFAULT_TIMEOUT,
+        NULL,
+        &error
+    );
 
-    if(msg == NULL) {
-        fprintf(stderr, "Unable to call %s %s %s %s", bus_name, object_path, iface, method);
-        return NULL;
-    }
-
-    if(first_arg_type != LINX_NO_ARGS) {
-        va_list args;
-        va_start(args, first_arg_type);
-        dbus_message_append_args_valist(msg, first_arg_type, args);
-        va_end(args);
-    }
-
-    if(strcmp(bus_name, LINX_BLUEZ_SYSTEM_NAME) == 0)
-        reply = dbus_connection_send_with_reply_and_block(system_connection, msg, DBUS_TIMEOUT_USE_DEFAULT, &error);
-    else
-        reply = dbus_connection_send_with_reply_and_block(session_connection, msg, DBUS_TIMEOUT_USE_DEFAULT, &error);
-
-    if(error_thrown(&error)) {
-        return NULL;
-    }
-
-    DBusMessageIter iter;
-    if(!dbus_message_iter_init(reply, &iter)) {
-        printf("Nothing returned\n");
+    if(error_is_set(error)) {
         return NULL;
     }
 
     void *res = NULL;
-    if(parse != LINX_NO_PARSE_FUNC)
-        res = parse(&iter);
+    if(parse != NULL) res = parse(reply);
 
-    dbus_message_unref(msg);
-    dbus_message_unref(reply);
+    g_variant_unref(reply);
     return res;
 }
 
-static bool error_thrown(DBusError *error) {
-    if(dbus_error_is_set(error)) {
-        fprintf(stderr, "D-Bus error: %s\n", error->message);
-        dbus_error_free(error);
+static bool error_is_set(GError *error) {
+    if(error != NULL) {
+        fprintf(stderr, "Error: %s\n", error->message);
+        g_error_free(error);
         return true;
     }
     return false;

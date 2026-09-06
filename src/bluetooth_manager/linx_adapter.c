@@ -3,14 +3,14 @@
 #define ADAPTER_OBJECT_PATH_PREFIX "hci"
 #define ADAPTER_IFACE_PREFIX "org.bluez.Adapter"
 
-static void *adapter_parse(DBusMessageIter *iter);
+static void *adapter_parse(GVariant *reply);
 
 static LinxAdapter *adapter;
 
 void linx_get_adapter() {
     adapter = linx_get_managed_objects(adapter_parse);
 
-    printf("Object Path: %s\nIFace: %s\n", adapter->object_path, adapter->iface);
+    // printf("Object Path: %s\nIFace: %s\n", adapter->object_path, adapter->iface);
 }
 
 void linx_start_discovery() {
@@ -20,8 +20,9 @@ void linx_start_discovery() {
         adapter->object_path,
         adapter->iface,
         "StartDiscovery",
-        LINX_NO_PARSE_FUNC,
-        LINX_NO_ARGS
+        NULL,
+        NULL,
+        NULL
     );
 }
 
@@ -32,44 +33,44 @@ void linx_stop_discovery() {
         adapter->object_path,
         adapter->iface,
         "StopDiscovery",
-        LINX_NO_PARSE_FUNC,
-        LINX_NO_ARGS
+        NULL,
+        NULL,
+        NULL
     );
 }
 
-// GetManagedObjects () -> (Dict of {Object Path, Dict of {String, Dict of {String, Variant}}} objects)
-static void *adapter_parse(DBusMessageIter *iter) {
+// GetManagedObjects () -> (a{oa{sa{sv}}})
+static void *adapter_parse(GVariant *reply) {
     LinxAdapter *adapter = malloc(sizeof(LinxAdapter));
 
-    DBusMessageIter objects;
-    dbus_message_iter_recurse(iter, &objects);
+    GVariant *objects;
+    g_variant_get(reply, "(@a{oa{sa{sv}}})", &objects);
 
-    for(; dbus_message_iter_get_arg_type(&objects) != DBUS_TYPE_INVALID; dbus_message_iter_next(&objects)) {
-        DBusMessageIter object_entry;
-        dbus_message_iter_recurse(&objects, &object_entry);
+    GVariantIter objects_iter;
+    g_variant_iter_init(&objects_iter, objects);
+    
+    char *object_path;
+    GVariant *interfaces;
+    while(g_variant_iter_next(&objects_iter, "{&o@a{sa{sv}}}", &object_path, &interfaces)) {
+        printf("Object: %s\n", object_path);
 
-        char *object_path;
-        dbus_message_iter_get_basic(&object_entry, &object_path);
+        GVariantIter interfaces_iter;
+        g_variant_iter_init(&interfaces_iter, interfaces);
 
-        if(strstr(object_path, ADAPTER_OBJECT_PATH_PREFIX) == NULL) continue;
+        char *iface;
+        GVariant *properties;
+        while(g_variant_iter_next(&interfaces_iter, "{s@a{sv}}", &iface, &properties)) {
+            printf("\tIface: %s\n", iface);
 
-        dbus_message_iter_next(&object_entry);
+            GVariantIter properties_iter;
+            g_variant_iter_init(&properties_iter, properties);
 
-        DBusMessageIter interfaces;
-        dbus_message_iter_recurse(&object_entry, &interfaces);
-
-        for(; dbus_message_iter_get_arg_type(&interfaces) != DBUS_TYPE_INVALID; dbus_message_iter_next(&interfaces)) {
-            DBusMessageIter iface_entry;
-            dbus_message_iter_recurse(&interfaces, &iface_entry);
-
-            char *iface;
-            dbus_message_iter_get_basic(&iface_entry, &iface);
-
-            if(strstr(iface, ADAPTER_IFACE_PREFIX) == NULL) continue;
-
-            adapter->object_path = strdup(object_path);
-            adapter->iface = strdup(iface);
-            return adapter;
+            char *property;
+            GVariant *value;
+            while(g_variant_iter_next(&properties_iter, "{sv}", &property, &value)) {
+                printf("\t\tProp: %s\n", property);
+                // printf("\t\tVal:  %s\n", g)
+            }
         }
     }
 

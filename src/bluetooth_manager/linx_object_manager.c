@@ -1,14 +1,15 @@
 #include "linx_object_manager.h"
 
-// GetManagedObjects () ↦ (Dict of {Object Path, Dict of {String, Dict of {String, Variant}}} objects)
-void *linx_get_managed_objects(void *(*parse)(DBusMessageIter *)) {
+// GetManagedObjects () -> (a{oa{sa{sv}}})
+void *linx_get_managed_objects(void *(*parse)(GVariant *)) {
     return linx_call_dbus_method(
         LINX_BLUEZ_SYSTEM_NAME,
         "/",
         "org.freedesktop.DBus.ObjectManager",
         "GetManagedObjects",
-        parse,
-        LINX_NO_ARGS
+        NULL,
+        G_VARIANT_TYPE("(a{oa{sa{sv}}})"),
+        parse
     );
 }
 
