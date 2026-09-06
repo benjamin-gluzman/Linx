@@ -27,12 +27,18 @@ void linx_disconnect_from_dbus() {
     g_object_unref(session_connection);
 }
 
+
+/*
+ * args is borrowed; caller retains ownership.
+ * reply is owned by this function.
+ * parse() must not unref reply.
+ */
 void *linx_call_dbus_method(
     const gchar *bus_name,
     const gchar *object_path,
     const gchar *interface_name,
     const gchar* method_name,
-    GVariant *parameters,
+    GVariant *args,
     const GVariantType *reply_type,
     void *(*parse)(GVariant *)
 ) {
@@ -45,7 +51,7 @@ void *linx_call_dbus_method(
         object_path,
         interface_name,
         method_name,
-        parameters,
+        args,
         reply_type,
         G_DBUS_CALL_FLAGS_NONE,
         DEFAULT_TIMEOUT,
