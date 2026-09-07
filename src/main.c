@@ -7,6 +7,12 @@ int main() {
     // linx_start_discovery();
     // sleep(10);
     // linx_stop_discovery();
+
+    linx_get_phone();
+    
+    linx_connect_phone();
+    sleep(5);
+    linx_disconnect_phone();
     
     linx_disconnect_from_dbus();
 

@@ -18,7 +18,7 @@ void *linx_call_dbus_method(
     const gchar *object_path,
     const gchar *interface_name,
     const gchar* method_name,
-    GVariant *parameters,
+    GVariant *args,
     const GVariantType *reply_type,
     void *(*parse)(GVariant *)
 );

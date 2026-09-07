@@ -4,7 +4,6 @@
 
 typedef struct {
     char *object_path;
-    char *iface;
     bool powered;
 } LinxAdapter;
 

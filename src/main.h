@@ -8,7 +8,7 @@
 // bluetooth_manager/
 #include "bluetooth_manager/linx_object_manager.h"
 #include "bluetooth_manager/linx_adapter.h"
-#include "bluetooth_manager/linx_device.h"
+#include "bluetooth_manager/linx_phone.h"
 
 // bluetooth_profiles/
 #include "bluetooth_profiles/linx_map.h"

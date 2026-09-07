@@ -12,7 +12,7 @@ static LinxAdapter *adapter;
 void linx_get_adapter() {
     adapter = linx_get_managed_objects(adapter_parse);
 
-    printf("Object Path: %s\nIFace: %s\nPowered: %s\n", adapter->object_path, adapter->iface, adapter->powered ? "true" : "false");
+    printf("Object Path: %s\nPowered: %s\n", adapter->object_path, adapter->powered ? "true" : "false");
 }
 
 void linx_start_discovery() {
@@ -20,7 +20,7 @@ void linx_start_discovery() {
     linx_call_dbus_method(
         LINX_BLUEZ_SYSTEM_NAME,
         adapter->object_path,
-        adapter->iface,
+        ADAPTER_IFACE_NAME,
         "StartDiscovery",
         NULL,
         NULL,
@@ -33,7 +33,7 @@ void linx_stop_discovery() {
     linx_call_dbus_method(
         LINX_BLUEZ_SYSTEM_NAME,
         adapter->object_path,
-        adapter->iface,
+        ADAPTER_IFACE_NAME,
         "StopDiscovery",
         NULL,
         NULL,
@@ -47,7 +47,7 @@ static void power_on_adapter(LinxAdapter *adapter) {
         return;
     }
 
-    GVariant *args = g_variant_new("(ssv)", adapter->iface, "Powered", g_variant_new_boolean(true));
+    GVariant *args = g_variant_new("(ssv)", ADAPTER_IFACE_NAME, "Powered", g_variant_new_boolean(true));
 
     // Set (ssv) -> ()
     linx_call_dbus_method(
@@ -86,8 +86,6 @@ static void *adapter_parse(GVariant *reply) {
             if(strcmp(iface, ADAPTER_IFACE_NAME) != 0) continue;
 
             adapter->object_path = strdup(object_path);
-            adapter->iface = strdup(iface);
-
 
             GVariantIter properties_iter;
             g_variant_iter_init(&properties_iter, properties);

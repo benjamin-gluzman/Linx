@@ -15,7 +15,7 @@ SRC = \
 	bluetooth_profiles/linx_pbap.c \
 	bluetooth_manager/linx_object_manager.c \
 	bluetooth_manager/linx_adapter.c \
-	bluetooth_manager/linx_device.c \
+	bluetooth_manager/linx_phone.c \
 
 OBJ = $(SRC:.c=.o)
 DEP = $(OBJ:.o=.d)
